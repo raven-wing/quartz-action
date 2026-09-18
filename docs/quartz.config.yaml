@@ -6,7 +6,7 @@ configuration:
   enablePopovers: true
   analytics:
     provider: null
-  locale: en-UK
+  locale: en-GB
   # GitHub Pages project site: user/org domain plus the repository name.
   baseUrl: raven-wing.github.io/quartz-action
   ignorePatterns:
