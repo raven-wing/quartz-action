@@ -1,0 +1,7 @@
+# editor backups
+*~
+\#*\#
+
+# Obsidian local state and deleted notes
+.obsidian/
+.trash/
