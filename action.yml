@@ -31,7 +31,7 @@ runs:
   using: composite
   steps:
     - name: Check out Quartz
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
         repository: ${{ inputs.quartz-repository }}
         ref: ${{ inputs.quartz-version }}
@@ -86,19 +86,20 @@ runs:
         fi
         echo "config-path=$config_path" >> "$GITHUB_OUTPUT"
 
-        # Only `source:` lines decide which plugins are installed, so a pageTitle edit keeps
-        # the ~600MB cache. `|| :` — a config with none of them would fail the step on grep's
-        # exit 1 travelling through pipefail.
-        config_hash="$({ grep -E '^[[:space:]]*-?[[:space:]]*source:' "$config_path" || :; } | sha256sum | cut -c1-16)"
+        # Hash the whole `plugins:` block, up to the next top-level key: it decides what gets
+        # installed, so a pageTitle or theme edit still keeps the ~600MB cache. Hashing only
+        # the `source:` lines missed the nested object form, where repo/ref/subdir sit on
+        # their own lines and two different refs hashed identically.
+        config_hash="$(awk '/^plugins:/{p=1;print;next} p&&/^[^[:space:]#]/{p=0} p' "$config_path" | sha256sum | cut -c1-16)"
         echo "hash=$config_hash" >> "$GITHUB_OUTPUT"
 
     - name: Setup Node
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
       with:
         node-version: ${{ steps.prepare.outputs.node-version }}
 
     - name: Cache npm
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ~/.npm
         key: quartz-npm-${{ runner.os }}-${{ inputs.quartz-repository }}-${{ inputs.quartz-version }}
@@ -108,15 +109,14 @@ runs:
     # automatic save needs the whole job to succeed, so a failing deploy would lose it.
     - name: Restore Quartz plugins
       id: plugins-cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ${{ steps.prepare.outputs.quartz-dir }}/.quartz
         key: quartz-plugins-${{ runner.os }}-${{ inputs.quartz-repository }}-${{ inputs.quartz-version }}-${{ steps.resolve.outputs.hash }}
-        # Any cache for this Quartz version will do: adding a plugin then builds just that one.
-        # Removed plugins unfortunately stays in it — nothing prunes them, and they are inert, since Quartz
-        # instantiates what the config lists. A quartz-version bump starts clean.
-        restore-keys: |
-          quartz-plugins-${{ runner.os }}-${{ inputs.quartz-repository }}-${{ inputs.quartz-version }}-
+        # Deliberately no restore-keys. A prefix match would hand this build a plugin
+        # directory built from a different config, and `installPlugin` keeps any directory
+        # whose HEAD resolves without comparing repo, ref or subdir — so a changed ref would
+        # build against the old plugin code and say nothing. Any config change starts empty.
 
     - name: Install Quartz and its plugins
       id: install
@@ -129,17 +129,21 @@ runs:
         if [ -n "$QUARTZ_CONFIG_PATH" ]; then cp "$QUARTZ_CONFIG_PATH" quartz.config.yaml; fi
         npm ci
 
-        # Optional: upstream also takes plugins as npm packages, so the subcommand may go one
-        # day. Probe the top-level --help listing, not `plugin --help` — at v5.0.0 that exits 1
-        # for real and bogus commands alike. Captured, since a pipe would hide other failures.
+        # Required, not an optimisation: this generates .quartz/plugins/index.ts, which
+        # Quartz's own sources import (quartz/components/Head.tsx), so esbuild cannot bundle
+        # the build without it. Leaving it to the build's own installPlugin call fails with
+        # `Could not resolve "../../.quartz/plugins"`.
+        #
+        # Probe the top-level --help listing, not `plugin --help` — at v5.0.0 that exits 1 for
+        # real and bogus commands alike. Captured, since a pipe would hide other failures.
         help="$(npx quartz --help 2>&1)"
         case "$help" in
           *"quartz plugin"*) npx quartz plugin install ;;
           *) echo "This Quartz has no 'plugin' subcommand; plugins come from npm." ;;
         esac
 
-        # Not the same as whether the subcommand ran: a config with no plugins leaves no
-        # .quartz either, and cache/save fails on a missing path.
+        # A Quartz with no plugin subcommand leaves no .quartz, and cache/save fails on a
+        # missing path.
         if [ -d .quartz ]; then
           echo "plugins-dir=true" >> "$GITHUB_OUTPUT"
         else
@@ -150,7 +154,7 @@ runs:
     # A failed install skips this step through the implicit success() gate.
     - name: Save Quartz plugins
       if: steps.install.outputs.plugins-dir == 'true' && steps.plugins-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ${{ steps.prepare.outputs.quartz-dir }}/.quartz
         key: ${{ steps.plugins-cache.outputs.cache-primary-key }}
