@@ -26,13 +26,14 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # full history, so page dates come from commits
+          persist-credentials: false # the build never pushes
 
       - id: quartz
         uses: raven-wing/quartz-action@v1
         with:
           quartz-version: v5.0.0
           config: quartz.config.yaml
-          directory: .
+          content-dir: .
 
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -71,4 +72,4 @@ For a user or organisation site — the repository named `username.github.io` �
 Point the domain at Pages, set it in Settings → Pages, and put the bare domain in `baseUrl`. Quartz's `cname` plugin writes the `CNAME` file for you from that value.
 
 > [!note] Private wikis
-> A GitHub Pages site from a private repository is public unless you are on GitHub Enterprise Cloud. To keep an internal wiki internal, publish to [[deploy/cloudflare-pages|Cloudflare Pages]] behind Access instead.
+> A GitHub Pages site from a private repository is public unless you are on GitHub Enterprise Cloud. To keep an internal wiki internal, publish to [[deploy/cloudflare|Cloudflare]] behind Access instead.

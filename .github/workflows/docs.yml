@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: docs-site
+  group: docs-site-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -19,13 +19,16 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # full history, so page dates come from commits
+          # Page dates read local history; nothing here pushes. Keeps the token out of
+          # .git/config while plugin install runs third-party build scripts.
+          persist-credentials: false
 
       - id: quartz
         uses: ./
         with:
           quartz-version: v5.0.0
           config: docs/quartz.config.yaml
-          directory: docs/content
+          content-dir: docs/content
 
       - name: Check output
         run: test -f "${{ steps.quartz.outputs.output-dir }}/index.html"
