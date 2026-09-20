@@ -18,8 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 0 # full history, so page dates come from commits
-          # Page dates read local history; nothing here pushes. Keeps the token out of
+          # Full history: page dates come from the last commit that touched each file.
+          # 1 is faster, but then every page shows the date of the latest push.
+          fetch-depth: 0
+          # Nothing here pushes, and that history is read locally. Keeps the token out of
           # .git/config while plugin install runs third-party build scripts.
           persist-credentials: false
 

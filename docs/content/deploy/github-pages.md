@@ -69,7 +69,4 @@ For a user or organisation site — the repository named `username.github.io` �
 
 ## Custom domain
 
-Point the domain at Pages, set it in Settings → Pages, and put the bare domain in `baseUrl`. Quartz's `cname` plugin writes the `CNAME` file for you from that value.
-
-> [!note] Private wikis
-> A GitHub Pages site from a private repository is public unless you are on GitHub Enterprise Cloud. To keep an internal wiki internal, publish to [[deploy/cloudflare|Cloudflare]] behind Access instead.
+Point the domain at Pages, set it in Settings → Pages, and put the bare domain in `baseUrl`.
