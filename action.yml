@@ -8,12 +8,12 @@ branding:
 
 inputs:
   quartz-version:
-    description: Quartz git ref to build with (tag, branch or commit SHA of jackyzha0/quartz unless quartz-repository is specified). Pin SHA for reproducible builds.
+    description: Quartz git ref to build with (tag, branch or commit SHA of quartz-repository). Pin SHA for reproducible builds.
     required: true
   config:
     description: Path to your quartz.config.yaml, relative to the workspace. Empty uses Quartz's default config.
     default: ""
-  directory:
+  content-dir:
     description: Content (vault) directory, relative to the workspace. Check it out with fetch-depth 0 for git-based dates, use 1 for fastest fetch.
     default: .
   quartz-repository:
@@ -25,53 +25,158 @@ outputs:
     description: Path of the built site.
     value: ${{ steps.build-wiki.outputs.output-dir }}
 
+# Most of what follows — the checkout, the Node pin, both caches — exists only because Quartz
+# ships as a repository to fork rather than as an installable package.
 runs:
   using: composite
   steps:
-    - name: Fetch Quartz
-      id: fetch
+    - name: Check out Quartz
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      with:
+        repository: ${{ inputs.quartz-repository }}
+        ref: ${{ inputs.quartz-version }}
+        path: .quartz-code
+        persist-credentials: false
+
+    - name: Prepare Quartz
+      id: prepare
       shell: bash
       env:
         QUARTZ_VERSION: ${{ inputs.quartz-version }}
         QUARTZ_REPOSITORY: ${{ inputs.quartz-repository }}
       run: |
-        dir="$RUNNER_TEMP/quartz"
-        rm -rf "$dir"
-        git init -q "$dir"
-        git -C "$dir" fetch -q --depth 1 "https://github.com/$QUARTZ_REPOSITORY.git" "$QUARTZ_VERSION"
-        git -C "$dir" checkout -q FETCH_HEAD
-        echo "dir=$dir" >> "$GITHUB_OUTPUT"
-        echo "node-version=$(cat "$dir/.node-version")" >> "$GITHUB_OUTPUT"
+        # Move quartz code out of the workspace for Quartz's own files not get rendered into the site
+        quartz_target_dir="$RUNNER_TEMP/quartz"
+        rm -rf "$quartz_target_dir"
+        mv "$GITHUB_WORKSPACE/.quartz-code" "$quartz_target_dir"
+        echo "quartz-dir=$quartz_target_dir" >> "$GITHUB_OUTPUT"
+
+        # Without this check setup-node gets an empty version and silently uses the runner's.
+        if [ ! -f "$quartz_target_dir/.node-version" ]; then
+          echo "::error::$QUARTZ_REPOSITORY@$QUARTZ_VERSION has no .node-version file"
+          exit 1
+        fi
+        echo "node-version=$(cat "$quartz_target_dir/.node-version")" >> "$GITHUB_OUTPUT"
+
+    - name: Resolve inputs
+      id: resolve
+      shell: bash
+      env:
+        QUARTZ_CONFIG: ${{ inputs.config }}
+        CONTENT_DIR: ${{ inputs.content-dir }}
+      run: |
+        content_path="$(realpath -m "$CONTENT_DIR")"
+        if [ ! -d "$content_path" ]; then
+          echo "::error::content-dir '$CONTENT_DIR' is not a directory"
+          exit 1
+        fi
+        echo "content-path=$content_path" >> "$GITHUB_OUTPUT"
+
+        # No config: Quartz falls back to its own default, which quartz-version already pins
+        # and the cache key already carries. Nothing to hash, and nothing below applies.
+        if [ -z "$QUARTZ_CONFIG" ]; then
+          echo "hash=default" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        config_path="$(realpath -m "$QUARTZ_CONFIG")"
+        if [ ! -f "$config_path" ]; then
+          echo "::error::config '$QUARTZ_CONFIG' not found"
+          exit 1
+        fi
+        echo "config-path=$config_path" >> "$GITHUB_OUTPUT"
+
+        config_hash="$(sha256sum "$config_path" | cut -c1-16)"
+        echo "hash=$config_hash" >> "$GITHUB_OUTPUT"
 
     - name: Setup Node
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
       with:
-        node-version: ${{ steps.fetch.outputs.node-version }}
+        node-version: ${{ steps.prepare.outputs.node-version }}
 
     - name: Cache npm
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ~/.npm
         key: quartz-npm-${{ runner.os }}-${{ inputs.quartz-repository }}-${{ inputs.quartz-version }}
+        # Unlike the plugin cache, a stale npm cache needs no argument: entries are
+        # content-addressed and npm checks their integrity, so an older one is at worst a
+        # partial hit. Without this a quartz-version bump discards it for nothing.
+        restore-keys: |
+          quartz-npm-${{ runner.os }}-${{ inputs.quartz-repository }}-
+
+    # At v5.0.0 `quartz plugin install` compiles every plugin from source: ~10 minutes and
+    # 2.2GB for the default set, against a second from this cache. (Newer Quartz takes its
+    # plugins from npm instead, where `npm ci` covers them and little lands in .quartz.) Restore/save rather than plain cache — the
+    # automatic save needs the whole job to succeed, so a failing deploy would lose it.
+    - name: Restore Quartz plugins
+      id: plugins-cache
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ${{ steps.prepare.outputs.quartz-dir }}/.quartz
+        key: quartz-plugins-${{ runner.os }}-${{ inputs.quartz-repository }}-${{ inputs.quartz-version }}-${{ steps.resolve.outputs.hash }}
+        # Fall back to any cache for this Quartz version, so a config edit costs seconds
+        # rather than a cold ten-minute install. Safe because `quartz plugin install`
+        # reconciles what it finds against quartz.lock.json — it compares each plugin's
+        # commit and does `git fetch` + `git reset --hard` when they differ, so a directory
+        # from another config is corrected, not trusted. (The HEAD-only check in
+        # gitLoader.installPlugin is the build-time path, for plugins the config names and
+        # the lockfile does not; those are never cached, since the save runs before the
+        # build.)
+        restore-keys: |
+          quartz-plugins-${{ runner.os }}-${{ inputs.quartz-repository }}-${{ inputs.quartz-version }}-
+
+    - name: Install Quartz and its plugins
+      id: install
+      shell: bash
+      working-directory: ${{ steps.prepare.outputs.quartz-dir }}
+      env:
+        QUARTZ_CONFIG_PATH: ${{ steps.resolve.outputs.config-path }}
+      run: |
+        # Quartz only reads its config from its own directory; there is no CLI flag for it.
+        if [ -n "$QUARTZ_CONFIG_PATH" ]; then cp "$QUARTZ_CONFIG_PATH" quartz.config.yaml; fi
+        npm ci
+
+        # Required, not an optimisation: this generates .quartz/plugins/index.ts, which
+        # Quartz's own sources import (quartz/components/Head.tsx), so esbuild cannot bundle
+        # the build without it. Leaving it to the build's own installPlugin call fails with
+        # `Could not resolve "../../.quartz/plugins"`.
+        #
+        # Probe the top-level --help listing, not `plugin --help` — at v5.0.0 that exits 1 for
+        # real and bogus commands alike. Captured, since a pipe would hide other failures.
+        help="$(npx quartz --help 2>&1)"
+        case "$help" in
+          *"quartz plugin"*) npx quartz plugin install ;;
+          *) echo "This Quartz has no 'plugin' subcommand; plugins come from npm." ;;
+        esac
+
+        # A Quartz with no plugin subcommand leaves no .quartz, and cache/save fails on a
+        # missing path.
+        if [ -d .quartz ]; then
+          echo "plugins-dir=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "plugins-dir=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    # Explicit save so a failing deploy later in the caller's workflow still leaves the cache.
+    # A failed install skips this step through the implicit success() gate. Before the build on
+    # purpose: plugins the config names but the lockfile does not are installed by the build,
+    # and nothing verifies those against a pinned commit — caching them would make a restored
+    # cache authoritative for them.
+    - name: Save Quartz plugins
+      if: steps.install.outputs.plugins-dir == 'true' && steps.plugins-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ${{ steps.prepare.outputs.quartz-dir }}/.quartz
+        key: ${{ steps.plugins-cache.outputs.cache-primary-key }}
 
     - name: Build wiki
       id: build-wiki
       shell: bash
-      working-directory: ${{ steps.fetch.outputs.dir }}
+      working-directory: ${{ steps.prepare.outputs.quartz-dir }}
       env:
-        CONFIG: ${{ inputs.config }}
-        CONTENT_DIR: ${{ inputs.directory }}
+        CONTENT_PATH: ${{ steps.resolve.outputs.content-path }}
       run: |
-        cd "$GITHUB_WORKSPACE"
-        content="$(realpath "$CONTENT_DIR")"
-        if [ -n "$CONFIG" ]; then config="$(realpath "$CONFIG")"; fi
-        cd - > /dev/null
-
-        # Quartz only reads its config from its own directory; there is no CLI flag for it.
-        if [ -n "$CONFIG" ]; then cp "$config" quartz.config.yaml; fi
-
         out="$RUNNER_TEMP/quartz-public"
-        npm ci
-        npx quartz plugin install
-        npx quartz build --directory "$content" --output "$out"
+        npx quartz build --directory "$CONTENT_PATH" --output "$out"
         echo "output-dir=$out" >> "$GITHUB_OUTPUT"

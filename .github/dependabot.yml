@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Covers .github/workflows/*.yml and the composite action.yml in the repository root —
+  # Dependabot reads both under directory "/". The SHA pins in action.yml are updated in
+  # place, version comment included.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # One PR for all of them; each is a pin bump that stands or falls with the docs build.
+      actions:
+        patterns:
+          - "*"

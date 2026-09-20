@@ -10,20 +10,21 @@ A GitHub Action that publishes a folder of Markdown notes as a wiki — searchab
 - uses: actions/checkout@v6
   with:
     fetch-depth: 0
+    persist-credentials: false
 
 - id: quartz
   uses: raven-wing/quartz-action@v1
   with:
     quartz-version: v5.0.0
     config: quartz.config.yaml
-    directory: .
+    content-dir: .
 
 - uses: actions/upload-pages-artifact@v3
   with:
     path: ${{ steps.quartz.outputs.output-dir }}
 ```
 
-That is the whole integration. The output is a directory, so any deploy step takes it — GitHub Pages above, or Cloudflare Pages, Netlify, `rsync`.
+That is the whole integration. The output is a directory, so any deploy step takes it — GitHub Pages above, or Cloudflare, Netlify, `rsync`.
 
 ## What is it for?
 
@@ -51,4 +52,4 @@ The site itself doesn't have to be public: put it behind an identity proxy such 
 ## Next
 
 - [[quickstart]] — from empty repository to published site.
-- [[how-it-works]] — what runs on the runner, and why.
+- [[deploy/github-pages]] — a workflow to copy.

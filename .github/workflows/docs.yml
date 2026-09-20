@@ -9,33 +9,65 @@ permissions:
   contents: read
 
 concurrency:
-  group: docs-site
-  cancel-in-progress: true
+  # Per ref, so a push to one PR cannot cancel another's build — or a deploy from main.
+  group: docs-site-${{ github.ref }}
+  # Superseded PR builds are worth abandoning at ten minutes a run. Pushes to main are not:
+  # this workflow deploys, and a cancelled deployment is worse than a redundant one.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
-          fetch-depth: 0 # full history, so page dates come from commits
+          # Full history: page dates come from the last commit that touched each file.
+          # 1 is faster, but then every page shows the date of the latest push.
+          fetch-depth: 0
+          # Nothing here pushes, and that history is read locally. Keeps the token out of
+          # .git/config while plugin install runs third-party build scripts.
+          persist-credentials: false
 
       - id: quartz
         uses: ./
         with:
           quartz-version: v5.0.0
           config: docs/quartz.config.yaml
-          directory: docs/content
+          content-dir: docs/content
 
       - name: Check output
         run: test -f "${{ steps.quartz.outputs.output-dir }}/index.html"
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
           path: ${{ steps.quartz.outputs.output-dir }}
 
-  deploy:
+  # The quickstart's starting point is no config at all, and the docs build never takes that
+  # path: `config: ""` skips the copy into Quartz's directory, returns the `default` cache
+  # hash and leaves config-path empty. A plugin-less config is also what first broke the
+  # config hash, so this is worth one job. Shallow checkout on purpose — dates do not matter
+  # to a smoke test, and it exercises the other fetch-depth.
+  build-without-config:
+    # After build, not beside it: this job's cache key differs, so running in parallel means
+    # two cold ten-minute installs. Waiting lets it prefix-match what build just saved.
     needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - id: quartz
+        uses: ./
+        with:
+          quartz-version: v5.0.0
+          content-dir: docs/content
+
+      - name: Check output
+        run: test -f "${{ steps.quartz.outputs.output-dir }}/index.html"
+
+  deploy:
+    needs: [build, build-without-config]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
@@ -46,4 +78,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
