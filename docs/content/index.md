@@ -52,4 +52,4 @@ The site itself doesn't have to be public: put it behind an identity proxy such 
 ## Next
 
 - [[quickstart]] — from empty repository to published site.
-- [[deploy/github-pages]], [[deploy/cloudflare]], [[deploy/other-hosts]] — a workflow to copy for each.
+- [[deploy/github-pages]] — a workflow to copy.

@@ -28,8 +28,8 @@ steps:
 The action only builds; publishing the result is one more step in the same workflow, pointed at `${{ steps.quartz.outputs.output-dir }}`. Each target has its own page in the docs, with the secrets, permissions and settings it needs:
 
 - [GitHub Pages](https://raven-wing.github.io/quartz-action/deploy/github-pages) — free hosting from the repository that holds the notes, nothing to sign up for.
-- [Cloudflare](https://raven-wing.github.io/quartz-action/deploy/cloudflare) — a custom domain on the free plan, and SSO in front of the site if the wiki is internal.
-- [Other hosts](https://raven-wing.github.io/quartz-action/deploy/other-hosts) — Netlify, S3, a server you already have.
+
+Anything else that serves static files works too — the output is a plain folder of HTML, CSS and images — but GitHub Pages is the only path verified end to end so far.
 
 ## Inputs
 

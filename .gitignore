@@ -2,6 +2,9 @@
 *~
 \#*\#
 
-# Obsidian local state and deleted notes
+# Obsidian
 .obsidian/
 .trash/
+
+# IDE
+.idea/

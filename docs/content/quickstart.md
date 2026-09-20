@@ -32,8 +32,8 @@ configuration:
 The action builds the site and hands you a directory. What you do with it is one more step in the same workflow:
 
 - [[deploy/github-pages]] — free hosting in the same repository, nothing to sign up for.
-- [[deploy/cloudflare]] — a custom domain on the free plan, and SSO in front of the site if the wiki is internal.
-- [[deploy/other-hosts]]
+
+Any other static host works the same way: hand it `output-dir`. Only the GitHub Pages route is documented end to end so far.
 
 
 ## 4. Build it
