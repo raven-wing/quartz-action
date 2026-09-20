@@ -74,4 +74,4 @@ Output: `output-dir`, the absolute path of the finished site.
 
 ## Build time
 
-Expect the first build to take several minutes — Quartz compiles its plugins from source — and every build after that to finish in seconds, because the action caches the result. Nothing to configure. [[build-time]] has the details if a build ever surprises you.
+Expect the first build to take several minutes — Quartz compiles its plugins from source — and every build after that to finish in seconds, because the action caches the result. Nothing to configure.

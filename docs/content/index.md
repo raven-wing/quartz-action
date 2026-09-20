@@ -53,4 +53,3 @@ The site itself doesn't have to be public: put it behind an identity proxy such 
 
 - [[quickstart]] — from empty repository to published site.
 - [[deploy/github-pages]] — a workflow to copy.
-- [[build-time]] — why the first build is slow and later ones aren't.
