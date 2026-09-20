@@ -86,11 +86,13 @@ runs:
         fi
         echo "config-path=$config_path" >> "$GITHUB_OUTPUT"
 
-        # Hash the whole `plugins:` block, up to the next top-level key: it decides what gets
-        # installed, so a pageTitle or theme edit still keeps the ~600MB cache. Hashing only
-        # the `source:` lines missed the nested object form, where repo/ref/subdir sit on
-        # their own lines and two different refs hashed identically.
-        config_hash="$(awk '/^plugins:/{p=1;print;next} p&&/^[^[:space:]#]/{p=0} p' "$config_path" | sha256sum | cut -c1-16)"
+        # The whole file, not some extracted part of it. Today the cached plugins depend only
+        # on quartz-version — `plugin install` reads Quartz's own quartz.lock.json, not this
+        # config — so this is insurance: if a later Quartz installs from the config instead,
+        # a key that ignored some field would restore another config's plugins and build
+        # against them silently. Renaming your site costs one cold build; that is the cheaper
+        # side of the trade.
+        config_hash="$(sha256sum "$config_path" | cut -c1-16)"
         echo "hash=$config_hash" >> "$GITHUB_OUTPUT"
 
     - name: Setup Node

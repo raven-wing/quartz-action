@@ -79,7 +79,7 @@ The first build takes several minutes: Quartz up to v5.0.0 ships no prebuilt dis
 > [!note] Trimming your config does not shorten this
 > `quartz plugin install` installs what Quartz's own `quartz.lock.json` pins, not what your config lists — so the same 42 plugins are built whatever you write. Deleting an entry or setting `enabled: false` changes which plugins your *site uses*, not which get installed. Trimming the lockfile instead is not an option either: Quartz's sources import named exports from the generated `.quartz/plugins/index.ts`, so dropping `og-image` fails the build with `No matching export ... CustomOgImagesEmitterName`. The cache is what makes later builds fast — a cold run is the price of a new `quartz-version`.
 
-Editing the config does not usually cost you the cache: the key hashes only the `plugins:` block, so a new title, theme or `baseUrl` reuses what is already there.
+Editing the config does cost you the cache: the key hashes the whole file, so even a new `pageTitle` means one cold build. That is deliberate — a key that ignored part of the config could restore plugins built from a different one, and Quartz's installer would keep them without noticing the mismatch.
 
 > [!note] Changing a plugin means a cold build
 > Any edit inside `plugins:` — adding one, removing one, changing a pinned `ref` — produces a new key with nothing to fall back on, so every plugin is compiled again. That is deliberate. Quartz's installer keeps any plugin directory it finds whose git `HEAD` resolves, without checking which repository or ref it came from, so a cache restored from a *different* config would silently build your site against the old plugin code. A slow build is the cheaper failure.

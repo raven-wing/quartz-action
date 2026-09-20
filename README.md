@@ -51,7 +51,7 @@ Anything else that serves static files works too — the output is a plain folde
 - If the content directory is your repository root, add everything that isn't content (`.github`, config folders, …) to `ignorePatterns` in your config.
 - Quartz is checked out and immediately moved to `$RUNNER_TEMP`, so the build never sees it and it can't end up in your content.
 - The npm cache is keyed on the Quartz version. If you pin a branch rather than a tag or SHA, the cache may be stale, but `npm ci` still installs exactly what the lockfile says.
-- Plugins are cached separately, keyed on the Quartz version plus a hash of the `plugins:` block in your config — so a title or theme edit keeps the cache. Any change inside `plugins:` starts a cold build instead of reusing an older entry: Quartz's installer keeps whatever plugin directory it finds without checking which ref it came from, so a cache from a different config would build against stale plugin code.
+- Plugins are cached separately, keyed on the Quartz version plus a hash of your whole config file. Any edit to the config therefore starts a cold build rather than reusing an older entry — deliberate, because Quartz's installer keeps whatever plugin directory it finds without checking which ref it came from, so a cache from a different config would build against stale plugin code without saying so.
 - `docs/` doubles as the test suite: every push and pull request builds it and fails if no `index.html` comes out.
 
 ## License
