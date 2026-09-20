@@ -9,8 +9,11 @@ permissions:
   contents: read
 
 concurrency:
+  # Per ref, so a push to one PR cannot cancel another's build — or a deploy from main.
   group: docs-site-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseded PR builds are worth abandoning at ten minutes a run. Pushes to main are not:
+  # this workflow deploys, and a cancelled deployment is worse than a redundant one.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
