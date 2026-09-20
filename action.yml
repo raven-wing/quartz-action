@@ -99,9 +99,15 @@ runs:
       with:
         path: ~/.npm
         key: quartz-npm-${{ runner.os }}-${{ inputs.quartz-repository }}-${{ inputs.quartz-version }}
+        # Unlike the plugin cache, a stale npm cache needs no argument: entries are
+        # content-addressed and npm checks their integrity, so an older one is at worst a
+        # partial hit. Without this a quartz-version bump discards it for nothing.
+        restore-keys: |
+          quartz-npm-${{ runner.os }}-${{ inputs.quartz-repository }}-
 
-    # `quartz plugin install` compiles every plugin from source: ~10 minutes and 2.2GB for the
-    # default set, against a second from this cache. Restore/save rather than plain cache — the
+    # At v5.0.0 `quartz plugin install` compiles every plugin from source: ~10 minutes and
+    # 2.2GB for the default set, against a second from this cache. (Newer Quartz takes its
+    # plugins from npm instead, where `npm ci` covers them and little lands in .quartz.) Restore/save rather than plain cache — the
     # automatic save needs the whole job to succeed, so a failing deploy would lose it.
     - name: Restore Quartz plugins
       id: plugins-cache
@@ -153,7 +159,10 @@ runs:
         fi
 
     # Explicit save so a failing deploy later in the caller's workflow still leaves the cache.
-    # A failed install skips this step through the implicit success() gate.
+    # A failed install skips this step through the implicit success() gate. Before the build on
+    # purpose: plugins the config names but the lockfile does not are installed by the build,
+    # and nothing verifies those against a pinned commit — caching them would make a restored
+    # cache authoritative for them.
     - name: Save Quartz plugins
       if: steps.install.outputs.plugins-dir == 'true' && steps.plugins-cache.outputs.cache-hit != 'true'
       uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0

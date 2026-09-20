@@ -39,8 +39,32 @@ jobs:
         with:
           path: ${{ steps.quartz.outputs.output-dir }}
 
-  deploy:
+  # The quickstart's starting point is no config at all, and the docs build never takes that
+  # path: `config: ""` skips the copy into Quartz's directory, returns the `default` cache
+  # hash and leaves config-path empty. A plugin-less config is also what first broke the
+  # config hash, so this is worth one job. Shallow checkout on purpose — dates do not matter
+  # to a smoke test, and it exercises the other fetch-depth.
+  build-without-config:
+    # After build, not beside it: this job's cache key differs, so running in parallel means
+    # two cold ten-minute installs. Waiting lets it prefix-match what build just saved.
     needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - id: quartz
+        uses: ./
+        with:
+          quartz-version: v5.0.0
+          content-dir: docs/content
+
+      - name: Check output
+        run: test -f "${{ steps.quartz.outputs.output-dir }}/index.html"
+
+  deploy:
+    needs: [build, build-without-config]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
