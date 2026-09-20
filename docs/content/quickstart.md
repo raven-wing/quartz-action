@@ -56,7 +56,7 @@ Whichever target you pick, the middle of the workflow is the same:
 
 `fetch-depth: 0` is worth keeping: pages without a date in their frontmatter take it from the last commit that changed the file. On a default shallow checkout git sees one squashed commit, so every page would show the date of your latest push.
 
-`persist-credentials: false` is not required, but there is no reason to leave it out: it stops checkout from storing its token in `.git/config`, where the plugin build scripts that run later in the job could read it. Drop the line only if a later step in the same workflow needs to push.
+`persist-credentials: false` keeps checkout's token off disk, where nothing in this build needs it. Leave it out if a later step in the same workflow needs to push.
 
 ## Inputs
 
@@ -74,12 +74,4 @@ Output: `output-dir`, the absolute path of the finished site.
 
 ## Build time
 
-The first build takes several minutes: Quartz up to v5.0.0 ships no prebuilt distribution, so every plugin in its `quartz.lock.json` is cloned, installed and compiled from source — measured at around ten minutes and 2.2 GB for the default set of 42, even with a warm npm cache. The action caches the result, and later runs restore it in about a second. Each repository builds its own cache, and a new `quartz-version` starts from cold.
-
-> [!note] Trimming your config does not shorten this
-> `quartz plugin install` installs what Quartz's own `quartz.lock.json` pins, not what your config lists — so the same 42 plugins are built whatever you write. Deleting an entry or setting `enabled: false` changes which plugins your *site uses*, not which get installed. Trimming the lockfile instead is not an option either: Quartz's sources import named exports from the generated `.quartz/plugins/index.ts`, so dropping `og-image` fails the build with `No matching export ... CustomOgImagesEmitterName`. The cache is what makes later builds fast — a cold run is the price of a new `quartz-version`.
-
-Editing the config rarely costs you much: the key hashes the whole file, so any edit misses it, but the run then falls back to any cache for the same `quartz-version`. `quartz plugin install` checks what it restored against `quartz.lock.json` and resets anything on the wrong commit, so the step finishes in seconds. Only a new `quartz-version` is a genuinely cold build.
-
-> [!note] A restored cache is checked, not trusted
-> The fallback can hand a run the plugins another config built. `quartz plugin install` reads each installed plugin's commit and compares it against `quartz.lock.json`, fetching and resetting the ones that differ, so what you end up building against is what the lockfile pins — whatever the cache happened to hold.
+Expect the first build to take several minutes — Quartz compiles its plugins from source — and every build after that to finish in seconds, because the action caches the result. Nothing to configure. [[build-time]] has the details if a build ever surprises you.
