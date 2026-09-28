@@ -8,7 +8,7 @@ branding:
 
 inputs:
   quartz-version:
-    description: Quartz git ref to build with (tag, branch or commit SHA of quartz-repository). Pin SHA for reproducible builds. Minimum supported: 97a2d05f80c4c50534959b1d0d41cc4b3895625e (v5 branch, 2026-09-20).
+    description: Quartz git ref to build with (tag, branch or commit SHA of quartz-repository). Pin SHA for reproducible builds. Oldest supported is 97a2d05f80c4c50534959b1d0d41cc4b3895625e (v5 branch, 2026-09-20).
     required: true
   config:
     description: Path to your quartz.config.yaml, relative to the workspace. Empty uses Quartz's default config.
