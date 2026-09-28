@@ -12,7 +12,7 @@ Anywhere you like — the repository root, or a subfolder such as `content/`. Th
 
 ## 2. Add a config (optional)
 
-Without `config`, the site builds with Quartz's default configuration. To customise the title, theme or plugins, copy [`quartz.config.default.yaml`](https://github.com/jackyzha0/quartz/blob/v5.0.0/quartz.config.default.yaml) from the version you pin, and set at least:
+Without `config`, the site builds with Quartz's default configuration. To customise the title, theme or plugins, copy [`quartz.config.default.yaml`](https://github.com/jackyzha0/quartz/blob/v5/quartz.config.default.yaml) from the version you pin, and set at least:
 
 ```yaml
 configuration:
@@ -49,7 +49,7 @@ Whichever target you pick, the middle of the workflow is the same:
 - id: quartz
   uses: raven-wing/quartz-action@v1
   with:
-    quartz-version: v5.0.0
+    quartz-version: 97a2d05f80c4c50534959b1d0d41cc4b3895625e # v5 branch, 2026-09-20
     config: quartz.config.yaml
     content-dir: .
 ```
@@ -62,7 +62,7 @@ Whichever target you pick, the middle of the workflow is the same:
 
 | Input | Required | Default | Description |
 |---|---|---|---|
-| `quartz-version` | yes | | Quartz git ref: tag, branch or commit SHA. |
+| `quartz-version` | yes | | Quartz git ref: tag, branch or commit SHA. `97a2d05` or later. |
 | `config` | no | Quartz default | Path to your `quartz.config.yaml`, relative to the workspace. |
 | `content-dir` | no | `.` | Content directory, relative to the workspace. |
 | `quartz-repository` | no | `jackyzha0/quartz` | Where to fetch Quartz from, e.g. your own fork. |
@@ -70,8 +70,11 @@ Whichever target you pick, the middle of the workflow is the same:
 Output: `output-dir`, the absolute path of the finished site.
 
 > [!tip] Pin a tag or a commit
-> `quartz-version` takes a branch name too, but then a build can change under you with no commit on your side. Pin `v5.0.0` or a SHA and upgrade deliberately.
+> `quartz-version` takes a branch name too, but then a build can change under you with no commit on your side. Pin a SHA and upgrade deliberately.
+
+> [!note] Minimum supported version: `97a2d05`
+> The oldest Quartz this action supports is `97a2d05f80c4c50534959b1d0d41cc4b3895625e` on the `v5` branch (2026-09-20). Earlier commits are not supported, and v5.0.0 is rejected outright: it compiles every plugin from git, which takes about ten minutes per cold build. Plugins come from npm only on the `v5` branch, with no release tag yet — so pin this commit or a later one from that branch.
 
 ## Build time
 
-Expect the first build to take several minutes — Quartz compiles its plugins from source — and every build after that to finish in seconds, because the action caches the result. Nothing to configure.
+Plugins come from npm with the rest of Quartz's dependencies, so a build takes well under a minute, and the npm cache makes later ones faster still. Nothing to configure.
