@@ -52,6 +52,7 @@ Anything else that serves static files works too — the output is a plain folde
 - Quartz is checked out and immediately moved to `$RUNNER_TEMP`, so the build never sees it and it can't end up in your content.
 - Plugins are npm dependencies of Quartz, so `npm ci` installs them, pinned by Quartz's `package-lock.json`. Name them in your config as `source: "@quartz-community/<name>"` (quoted — `@` cannot start a plain YAML value). A plugin Quartz does not depend on must be a `github:` source; the build clones it.
 - The npm cache is keyed on the Quartz version. If you pin a branch rather than a tag or SHA, the cache may be stale, but `npm ci` still installs exactly what the lockfile says.
+- Stuck on Quartz v5.0.0 (`ab346fa66a895e12d63a308e70ce330ba795822a`)? This action supported it up to commit [`16a0abc`](https://github.com/raven-wing/quartz-action/tree/16a0abcb7fe2a68dc6e9d3f47868bc9043ae4853), which caches the plugins v5.0.0 compiles from git: `uses: raven-wing/quartz-action@16a0abcb7fe2a68dc6e9d3f47868bc9043ae4853` with `quartz-version: v5.0.0`. It gets no further fixes.
 - `docs/` doubles as the test suite: every push and pull request builds it and fails if no `index.html` comes out.
 
 ## License

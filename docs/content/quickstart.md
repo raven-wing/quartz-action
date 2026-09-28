@@ -74,6 +74,14 @@ Output: `output-dir`, the absolute path of the finished site.
 
 > [!note] Minimum supported version: `97a2d05`
 > The oldest Quartz this action supports is `97a2d05f80c4c50534959b1d0d41cc4b3895625e` on the `v5` branch (2026-09-20). Earlier commits are not supported, and v5.0.0 is rejected outright: it compiles every plugin from git, which takes about ten minutes per cold build. Plugins come from npm only on the `v5` branch, with no release tag yet — so pin this commit or a later one from that branch.
+>
+> Still on v5.0.0 (`ab346fa66a895e12d63a308e70ce330ba795822a`)? Pin the last action commit that supported it, [`16a0abc`](https://github.com/raven-wing/quartz-action/tree/16a0abcb7fe2a68dc6e9d3f47868bc9043ae4853). It caches the plugins v5.0.0 compiles from git, so only the first build takes the full ten minutes. It gets no further fixes.
+>
+> ```yaml
+> - uses: raven-wing/quartz-action@16a0abcb7fe2a68dc6e9d3f47868bc9043ae4853
+>   with:
+>     quartz-version: v5.0.0
+> ```
 
 ## Build time
 
