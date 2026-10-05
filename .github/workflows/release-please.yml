@@ -27,7 +27,7 @@ jobs:
         if: steps.release.outputs.release_created
         env:
           MAJOR: v${{ steps.release.outputs.major }}
-          TAG: ${{ steps.release.outputs.tag_name }}
+          SHA: ${{ steps.release.outputs.sha }}
         run: |
-          git tag -f "$MAJOR" "$TAG"
+          git tag -f "$MAJOR" "$SHA"
           git push -f origin "refs/tags/$MAJOR"
