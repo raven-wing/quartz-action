@@ -23,15 +23,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # full history, so page dates come from commits
           persist-credentials: false # the build never pushes
 
       - id: quartz
-        uses: raven-wing/quartz-action@v1
+        uses: raven-wing/quartz-action@v0
         with:
-          quartz-version: v5.0.0
+          quartz-version: 97a2d05f80c4c50534959b1d0d41cc4b3895625e # v5 branch, 2026-09-20
           config: quartz.config.yaml
           content-dir: .
 

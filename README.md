@@ -10,15 +10,15 @@ Your repository only needs the content and (optionally) a `quartz.config.yaml`. 
 
 ```yaml
 steps:
-  - uses: actions/checkout@v6
+  - uses: actions/checkout@v7
     with:
       fetch-depth: 0 # full history for git-based "created/modified" dates - use 1 for flat history if you want faster checkout
       persist-credentials: false # the build never pushes, so the token need not stay on disk
 
   - id: quartz
-    uses: raven-wing/quartz-action@v1
+    uses: raven-wing/quartz-action@v0
     with:
-      quartz-version: v5.0.0
+      quartz-version: 97a2d05f80c4c50534959b1d0d41cc4b3895625e # v5 branch, 2026-09-20
       config: quartz.config.yaml
       content-dir: .
 ```
@@ -35,7 +35,7 @@ Anything else that serves static files works too — the output is a plain folde
 
 | Input | Required | Default | Description |
 |---|---|---|---|
-| `quartz-version` | yes | | Quartz git ref: tag, branch or commit SHA. Pin a tag or SHA for reproducible builds. |
+| `quartz-version` | yes | | Quartz git ref: tag, branch or commit SHA. Pin a SHA for reproducible builds. Oldest supported: `97a2d05f80c4c50534959b1d0d41cc4b3895625e` (v5 branch, 2026-09-20); v5.0.0 is rejected. |
 | `config` | no | Quartz default | Path to your `quartz.config.yaml`, relative to the workspace. |
 | `content-dir` | no | `.` | Content directory, relative to the workspace. |
 | `quartz-repository` | no | `jackyzha0/quartz` | Repository to fetch Quartz from, e.g. your own fork. |
@@ -49,10 +49,8 @@ Anything else that serves static files works too — the output is a plain folde
 ## Notes
 
 - If the content directory is your repository root, add everything that isn't content (`.github`, config folders, …) to `ignorePatterns` in your config.
-- Quartz is checked out and immediately moved to `$RUNNER_TEMP`, so the build never sees it and it can't end up in your content.
-- The npm cache is keyed on the Quartz version. If you pin a branch rather than a tag or SHA, the cache may be stale, but `npm ci` still installs exactly what the lockfile says.
-- Plugins are cached separately, keyed on the Quartz version plus a hash of your whole config file, and any cache for the same Quartz version is accepted as a fallback. Editing the config therefore costs seconds, not a cold install: at v5.0.0 `quartz plugin install` compares each plugin against the commit `quartz.lock.json` pins and resets the ones that differ, so a cache from a different config is corrected rather than trusted.
-- `docs/` doubles as the test suite: every push and pull request builds it and fails if no `index.html` comes out.
+- Plugins are npm dependencies of Quartz, pinned by its `package-lock.json`. Name them as `source: "@quartz-community/<name>"` (quoted: `@` cannot start a plain YAML value). A plugin Quartz doesn't depend on must be a `github:` source, which the build clones.
+- Stuck on Quartz v5.0.0? Pin the last action commit that supported it, [`16a0abc`](https://github.com/raven-wing/quartz-action/tree/16a0abcb7fe2a68dc6e9d3f47868bc9043ae4853). It gets no further fixes.
 
 ## License
 
