@@ -7,7 +7,7 @@ This site is the self-documenting vault of [quartz-action](https://github.com/ra
 A GitHub Action that publishes a folder of Markdown notes as a wiki — searchable, cross-linked, hosted for free. You need your notes, a config file and a workflow; the action does the rest with [Quartz](https://github.com/jackyzha0/quartz).
 
 ```yaml
-- uses: actions/checkout@v6
+- uses: actions/checkout@v7
   with:
     fetch-depth: 0
     persist-credentials: false

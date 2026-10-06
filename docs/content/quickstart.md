@@ -41,7 +41,7 @@ Any other static host works the same way: hand it `output-dir`. Only the GitHub 
 Whichever target you pick, the middle of the workflow is the same:
 
 ```yaml
-- uses: actions/checkout@v6
+- uses: actions/checkout@v7
   with:
     fetch-depth: 0 # full history, so page dates come from commits
     persist-credentials: false # the build never pushes, so the token need not stay on disk
