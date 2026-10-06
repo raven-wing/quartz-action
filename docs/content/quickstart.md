@@ -47,7 +47,7 @@ Whichever target you pick, the middle of the workflow is the same:
     persist-credentials: false # the build never pushes, so the token need not stay on disk
 
 - id: quartz
-  uses: raven-wing/quartz-action@v1
+  uses: raven-wing/quartz-action@v0
   with:
     quartz-version: 97a2d05f80c4c50534959b1d0d41cc4b3895625e # v5 branch, 2026-09-20
     config: quartz.config.yaml

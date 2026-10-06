@@ -1,4 +1,4 @@
-name: Release Please
+name: Release
 
 on:
   push:
@@ -12,15 +12,11 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      # Keeps a release PR open from conventional commits on main; merging it tags vX.Y.Z and
-      # publishes the GitHub release.
       - id: release
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-
-      # Users pin `@v1`, so the major tag has to follow every release.
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         if: steps.release.outputs.release_created
       - name: Move major tag

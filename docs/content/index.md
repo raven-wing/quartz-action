@@ -13,7 +13,7 @@ A GitHub Action that publishes a folder of Markdown notes as a wiki — searchab
     persist-credentials: false
 
 - id: quartz
-  uses: raven-wing/quartz-action@v1
+  uses: raven-wing/quartz-action@v0
   with:
     quartz-version: 97a2d05f80c4c50534959b1d0d41cc4b3895625e # v5 branch, 2026-09-20
     config: quartz.config.yaml
